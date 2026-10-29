@@ -70,8 +70,18 @@ async fn main() -> Result<()> {
 
     match controller(&config).await {
         Ok(iperf) => {
-            recorder.measurement(SENDER_THROUGHPUT, iperf.end.sum_sent.bits_per_second)?;
-            recorder.measurement(RECEIVER_THROUGHPUT, iperf.end.sum_received.bits_per_second)?;
+            recorder.iperf_throughput(
+                SENDER_THROUGHPUT,
+                iperf.end.sum_sent.bits_per_second,
+                &iperf.interval_output,
+                true,
+            )?;
+            recorder.iperf_throughput(
+                RECEIVER_THROUGHPUT,
+                iperf.end.sum_received.bits_per_second,
+                &iperf.interval_output,
+                false,
+            )?;
             recorder.measurement(
                 DOWN_IPERF_CPU,
                 iperf.end.cpu_utilization_percent.remote_total,
@@ -118,6 +128,9 @@ async fn tunnel_run(config: &Config) -> Result<iperf::Output> {
                 "iperf3",
                 &[
                     "--json".to_owned(),
+                    "--get-server-output".to_owned(),
+                    "--interval".to_owned(),
+                    "1".to_owned(),
                     "--client".to_owned(),
                     ALICE_TUNNEL_ADDRESS.to_string(),
                     "--port".to_owned(),

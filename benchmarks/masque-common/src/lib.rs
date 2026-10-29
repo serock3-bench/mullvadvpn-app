@@ -77,10 +77,20 @@ pub async fn run_udp_benchmark(
     {
         Ok(result) => {
             if let Some(sent) = result.end.sent() {
-                recorder.measurement(SENDER_THROUGHPUT, sent.bits_per_second)?;
+                recorder.iperf_throughput(
+                    SENDER_THROUGHPUT,
+                    sent.bits_per_second,
+                    &result.interval_output,
+                    true,
+                )?;
             }
             if let Some(received) = result.end.received() {
-                recorder.measurement(RECEIVER_THROUGHPUT, received.bits_per_second)?;
+                recorder.iperf_throughput(
+                    RECEIVER_THROUGHPUT,
+                    received.bits_per_second,
+                    &result.interval_output,
+                    false,
+                )?;
                 if let Some(jitter_ms) = received.jitter_ms {
                     recorder.measurement(UDP_JITTER, jitter_ms / 1000.0)?;
                 }
@@ -141,6 +151,9 @@ async fn udp_run(config: &Config, datagram_length: u16) -> Result<UdpOutput> {
                 "iperf3",
                 &[
                     "--json".to_owned(),
+                    "--get-server-output".to_owned(),
+                    "--interval".to_owned(),
+                    "1".to_owned(),
                     "--udp".to_owned(),
                     "--client".to_owned(),
                     "127.0.0.1".to_owned(),
@@ -380,6 +393,9 @@ pub async fn iperf_server(bind: IpAddr, port: u16) -> Result<LocalProcess> {
         "iperf3",
         &[
             "--server".to_owned(),
+            "--json".to_owned(),
+            "--interval".to_owned(),
+            "1".to_owned(),
             "--bind".to_owned(),
             bind.to_string(),
             "--port".to_owned(),
