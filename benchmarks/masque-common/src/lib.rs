@@ -21,7 +21,6 @@ use benchy_runner::{
 };
 use tokio::{
     io::{AsyncBufReadExt, AsyncRead, AsyncWriteExt, BufReader, Lines},
-    net::TcpStream,
     process::{Child, Command},
     sync::mpsc,
     time::{sleep, timeout},
@@ -31,7 +30,6 @@ const READY_MARKER: &str = "Listening on";
 const READY_TIMEOUT: Duration = Duration::from_secs(20);
 const PROBE_ATTEMPTS: usize = 10;
 const PROBE_INTERVAL: Duration = Duration::from_millis(500);
-const PROBE_TIMEOUT: Duration = Duration::from_secs(2);
 
 const SENDER_THROUGHPUT: MeasurementDefinition = MeasurementDefinition {
     id: "throughput.sender",
@@ -553,38 +551,43 @@ impl RemoteProcess {
     }
 }
 
-/// Waits until a TCP port on the peer accepts connections, using bash's `/dev/tcp`.
+/// Waits for a listening socket without opening a connection to the peer's service.
+/// Connecting and immediately closing would make iperf3 log a protocol error.
 pub async fn wait_remote_tcp(peer: &str, address: &str, port: u16) -> Result<()> {
-    let probe = remote_command(
-        "timeout",
-        &[
-            "2".to_owned(),
-            "bash".to_owned(),
-            "-c".to_owned(),
-            format!("</dev/tcp/{address}/{port}"),
-        ],
-    );
+    let address: IpAddr = address.parse().context("invalid TCP listener address")?;
+    let probe = remote_command("ss", &tcp_listener_args(address, port));
     for _ in 0..PROBE_ATTEMPTS {
-        if checked_output("ssh", [peer, &probe]).await.is_ok() {
+        let output = checked_output("ssh", [peer, &probe]).await?;
+        if !output.stdout.is_empty() {
             return Ok(());
         }
         sleep(PROBE_INTERVAL).await;
     }
-    bail!("the peer did not accept TCP connections on {address}:{port}");
+    bail!("the peer has no listening TCP socket on {address}:{port}");
 }
 
-/// Waits until a local TCP port accepts connections.
+/// Waits for a local listening socket without making a spurious client connection.
 pub async fn wait_local_tcp(address: SocketAddr) -> Result<()> {
     for _ in 0..PROBE_ATTEMPTS {
-        if timeout(PROBE_TIMEOUT, TcpStream::connect(address))
-            .await
-            .is_ok_and(|connection| connection.is_ok())
-        {
+        let output = checked_output("ss", tcp_listener_args(address.ip(), address.port())).await?;
+        if !output.stdout.is_empty() {
             return Ok(());
         }
         sleep(PROBE_INTERVAL).await;
     }
-    bail!("nothing accepted TCP connections on {address}");
+    bail!("no listening TCP socket on {address}");
+}
+
+fn tcp_listener_args(address: IpAddr, port: u16) -> [String; 3] {
+    let (address, wildcard) = match address {
+        IpAddr::V4(address) => (address.to_string(), "0.0.0.0"),
+        IpAddr::V6(address) => (format!("[{address}]"), "[::]"),
+    };
+    [
+        "-H".into(),
+        "-ltn".into(),
+        format!("( src {address} or src {wildcard} ) and sport = :{port}"),
+    ]
 }
 
 /// Waits until the peer can reach the given tunnel address over ICMP.
@@ -753,6 +756,28 @@ mod tests {
     use benchy_lib::iperf::UdpOutput;
 
     use super::{LocalProcess, remote_command, shell_quote, validate_udp_result};
+
+    #[cfg(target_os = "linux")]
+    #[tokio::test]
+    async fn tcp_readiness_does_not_open_a_client_connection() {
+        use std::{
+            net::{Ipv4Addr, SocketAddr},
+            time::Duration,
+        };
+        use tokio::{net::TcpListener, time::timeout};
+
+        for bind in [Ipv4Addr::LOCALHOST, Ipv4Addr::UNSPECIFIED] {
+            let listener = TcpListener::bind((bind, 0)).await.unwrap();
+            let address =
+                SocketAddr::from((Ipv4Addr::LOCALHOST, listener.local_addr().unwrap().port()));
+            super::wait_local_tcp(address).await.unwrap();
+            assert!(
+                timeout(Duration::from_millis(50), listener.accept())
+                    .await
+                    .is_err()
+            );
+        }
+    }
 
     #[tokio::test]
     async fn local_readiness_is_detected_on_stdout() {

@@ -53,9 +53,11 @@ Configuration is read at runtime:
 - `BENCHY_MASQUE_MTU` (default `1280`)
 - `BENCHY_TUNNEL_MTU` (default `1280`)
 
-The controller needs Rust, `iperf3`, `ssh`, `scp`, and, for `wg-over-masque`, the `wg`
-tool plus passwordless `sudo` for the narrow `ip` and `wg setconf` operations. The peer
-needs `iperf3`, `socat`, `bash`, `wg`, and the same passwordless sudo operations. The
+The controller needs Rust, a C compiler, CMake, `iperf3`, `ssh`, `scp`, and `ss` (from
+`iproute2`). For `wg-over-masque`, it also needs `wg` plus passwordless `sudo` for the
+narrow `ip` and `wg setconf` operations. The peer
+needs `iperf3`, `socat`, `ss`, `wg`, and the same passwordless sudo operations. TCP readiness
+checks inspect listening sockets with `ss` instead of making incomplete iperf connections. The
 `wg-over-masque` benchmark additionally requires kernel WireGuard on both hosts.
 
 iperf3's TCP control channel cannot traverse the UDP-only proxy, so the UDP benchmarks
