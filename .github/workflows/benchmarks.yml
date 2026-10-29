@@ -1,6 +1,10 @@
 name: Benchmarks
 
 on:
+  schedule:
+    - cron: '17 1 * * *'
+  pull_request:
+    branches: [main]
   workflow_dispatch:
     inputs:
       benchmarks:

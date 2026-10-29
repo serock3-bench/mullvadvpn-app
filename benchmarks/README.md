@@ -15,7 +15,10 @@ cargo run --release --locked \
 
 ## GitHub Actions
 
-Launch the `Benchmarks` workflow manually with the desired branch and benchmark selection.
+The `Benchmarks` workflow runs all default benchmarks nightly on `main` at 01:17 UTC and for
+pull requests targeting `main`. Internal PRs run automatically; workflows from external
+contributors require maintainer approval on the PR page. It can also be launched manually
+with the desired branch and benchmark selection.
 After a successful run, `Publish benchmarks` runs on a GitHub-hosted runner, uploads the
 results to Bencher, and adds a report link to its workflow summary. Raw JSON remains in the
 original benchmark run's summary and artifacts.
