@@ -23,6 +23,10 @@ After a successful run, `Publish benchmarks` runs on a GitHub-hosted runner, upl
 results to Bencher, and adds a report link to its workflow summary. Raw JSON remains in the
 original benchmark run's summary and artifacts.
 
+For PRs, the publisher attaches a Bencher check and updates a report comment for the exact
+head commit tested. Comparisons use the PR's `main` base revision on the same `alice-bob-v1`
+testbed, with separate measures grouped under each benchmark.
+
 Set the repository variable `BENCHER_PROJECT` to the Bencher project identifier (`mullvad-test`
 for the pilot) and the repository secret `BENCHER_API_KEY` to that project's key. Only the
 publishing job receives the key; Alice runs the benchmarks without it.
