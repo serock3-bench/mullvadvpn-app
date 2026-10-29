@@ -1,0 +1,22 @@
+name: Publish benchmarks
+
+on:
+  workflow_run:
+    workflows: [Benchmarks]
+    types: [completed]
+
+permissions: {}
+
+jobs:
+  publish:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    permissions:
+      actions: read
+      contents: read
+      checks: write
+      pull-requests: write
+    uses: Serock3/benchy/.github/workflows/publish-benchmarks.yml@main
+    with:
+      bencher-project: ${{ vars.BENCHER_PROJECT }}
+    secrets:
+      BENCHER_API_KEY: ${{ secrets.BENCHER_API_KEY }}

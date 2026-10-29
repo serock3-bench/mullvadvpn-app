@@ -13,6 +13,17 @@ cargo run --release --locked \
   --package masque-throughput-benchmark
 ```
 
+## GitHub Actions
+
+Launch the `Benchmarks` workflow manually with the desired branch and benchmark selection.
+After a successful run, `Publish benchmarks` runs on a GitHub-hosted runner, uploads the
+results to Bencher, and adds a report link to its workflow summary. Raw JSON remains in the
+original benchmark run's summary and artifacts.
+
+Set the repository variable `BENCHER_PROJECT` to the Bencher project identifier (`mullvad-test`
+for the pilot) and the repository secret `BENCHER_API_KEY` to that project's key. Only the
+publishing job receives the key; Alice runs the benchmarks without it.
+
 ## Benchmarks
 
 - `masque-throughput` — UDP iperf3 through the `mullvad-masque-proxy` examples. The
