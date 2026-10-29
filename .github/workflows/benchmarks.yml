@@ -12,13 +12,20 @@ on:
         required: false
         default: default
         type: string
+      iterations:
+        description: Complete runs per benchmark (1–100), aggregated as mean ± sample standard deviation
+        required: false
+        default: 1
+        type: number
 
 permissions:
   contents: read
 
 jobs:
   benchmark:
-    uses: Serock3/benchy/.github/workflows/run-benchmarks.yml@main
+    uses: Serock3/benchy/.github/workflows/run-benchmarks.yml@599df926f8e5e9fdf0be10be9deeef3d9def56d1
     with:
       benchmarks: ${{ inputs.benchmarks || 'default' }}
+      iterations: ${{ inputs.iterations || 1 }}
       manifest-path: benchmarks/Cargo.toml
+      framework-ref: 599df926f8e5e9fdf0be10be9deeef3d9def56d1
