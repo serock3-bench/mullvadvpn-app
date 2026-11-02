@@ -71,12 +71,14 @@ pub async fn run_udp_benchmark(
         recorder.measurement(MASQUE_CPU, cpu)?;
         // Loss and jitter are receiver observations; do not import Bob's values for upload.
         if !direction.sender() {
-            if let Some(jitter) = local.jitter_ms {
-                recorder.measurement(UDP_JITTER, jitter / 1000.0)?;
-            }
-            if let Some(loss) = local.lost_percent {
-                recorder.measurement(UDP_LOSS, loss)?;
-            }
+            let jitter = local
+                .jitter_ms
+                .context("local UDP receiver report has no jitter")?;
+            let loss = local
+                .lost_percent
+                .context("local UDP receiver report has no loss")?;
+            recorder.measurement(UDP_JITTER, jitter / 1000.0)?;
+            recorder.measurement(UDP_LOSS, loss)?;
         }
         Ok(())
     }

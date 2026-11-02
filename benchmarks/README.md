@@ -45,6 +45,10 @@ CPU is a percentage of one logical CPU (200% means two CPUs) without uncertainty
 bounds. Changing the old sender/receiver layout requires a new baseline; the pilot
 publisher uses `alice-bob-app-v2` as its Bencher testbed.
 
+UDP upload measures Alice's offered sender rate, not Bob's delivered rate. Drops
+after Alice sends can leave that rate unchanged, so it cannot alone detect a UDP
+delivery regression. Download's local receiver rate/loss are the delivery measures.
+
 ## Actions and configuration
 
 `Benchmarks` runs nightly on main at 01:17 UTC, on internal PRs, and manually with a
